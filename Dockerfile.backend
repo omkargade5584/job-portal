@@ -1,55 +1,29 @@
-# ============================================
-# Stage 1: Build Stage
-# ============================================
+# --- BUILD STAGE ---
 FROM maven:3.9-eclipse-temurin-17-alpine AS builder
-
-# Set working directory
-WORKDIR /build
-
-# Copy pom.xml and download dependencies first
-# This layer is cached if pom.xml doesn't change
-COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Copy the entire source code
-COPY src ./src
-
-# Build the application
-# Create a fat JAR with all dependencies
-RUN mvn clean package -DskipTests -B -q
-
-# ============================================
-# Stage 2: Runtime Stage
-# ============================================
-FROM eclipse-temurin:17-jre-alpine
-
-# Set metadata labels
-LABEL maintainer="Your Team <your-email@company.com>"
-LABEL description="Spring Boot Backend Service"
-LABEL version="1.0.0"
-
-# Create a non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-# Set working directory
 WORKDIR /app
 
-# Copy the built JAR from the builder stage
-COPY --from=builder /build/target/*.jar app.jar
+# 1. Copy pom.xml from inside the backend folder
+COPY backend/pom.xml .
 
-# Change ownership to non-root user
-RUN chown -R appuser:appgroup /app
+# 2. Download dependencies
+RUN mvn dependency:go-offline
 
-# Switch to non-root user
-USER appuser
+# 3. Copy the source code from inside the backend folder
+COPY backend/src ./src
 
-# Expose the application port
+# 4. Build the jar file
+RUN mvn clean package -DskipTests
+
+# --- RUN STAGE ---
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+user appuser
+
+# Copy the built jar file from the builder stage
+COPY --from=builder /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-# Health check to verify the application is running
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
-
-# Run the application
-# Using exec form (JSON array) to ensure proper signal handling
 ENTRYPOINT ["java", "-jar", "app.jar"]
