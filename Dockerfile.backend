@@ -3,13 +3,13 @@ FROM maven:3.9-eclipse-temurin-17-alpine AS builder
 WORKDIR /app
 
 # 1. Copy pom.xml from inside the backend folder
-COPY backend/pom.xml .
+COPY pom.xml .
 
 # 2. Download dependencies
 RUN mvn dependency:go-offline
 
 # 3. Copy the source code from inside the backend folder
-COPY backend/src ./src
+COPY src ./src
 
 # 4. Build the jar file
 RUN mvn clean package -DskipTests
