@@ -1,0 +1,52 @@
+# ============================================
+# Stage 1: Build Stage
+# ============================================
+FROM node:20-alpine AS builder
+
+# Set metadata
+LABEL stage="builder"
+
+# Set working directory
+WORKDIR /build
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install dependencies
+# Using npm ci instead of npm install for reproducible builds in Docker
+RUN npm ci --prefer-offline --no-audit
+
+# Copy the source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# ============================================
+# Stage 2: Runtime Stage
+# ============================================
+FROM nginx:alpine
+
+# Set metadata labels
+LABEL maintainer="Your Team <your-email@company.com>"
+LABEL description="React/Vite Frontend Service"
+LABEL version="1.0.0"
+
+# Create a non-root user for Nginx
+# Note: Nginx Alpine already has www-data user, but we ensure proper configuration
+
+# Copy custom Nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy the built application from the builder stage
+COPY --from=builder /build/dist /usr/share/nginx/html
+
+# Expose the Nginx port
+EXPOSE 3000
+
+# Health check to verify Nginx is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
+# Start Nginx in the foreground
+CMD ["nginx", "-g", "daemon off;"]

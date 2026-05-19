@@ -1,0 +1,119 @@
+version: '3.9'
+
+services:
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  db:
+    image: postgres:16-alpine
+    container_name: app-postgres-dev
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      # Optional: Set timezone
+      TZ: Asia/Kolkata
+    ports:
+      - "5432:5432"
+    volumes:
+      # Persist database data across container restarts
+      - postgres-data:/var/lib/postgresql/data
+      # Optional: Initialize database with SQL script
+      # - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-network
+
+  # ============================================
+  # Spring Boot Backend
+  # ============================================
+  backend:
+    build:
+      context: ./backend  # Path to your backend directory
+      dockerfile: ../Dockerfile.backend
+    container_name: app-backend-dev
+    environment:
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres123
+      
+      # JPA/Hibernate Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: 'false'
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+      
+      # JWT Configuration
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production-minimum-256-bits-recommended
+      
+      # Application Configuration
+      SPRING_APPLICATION_NAME: app-backend
+      SERVER_PORT: 8080
+      
+      # Optional: Enable Spring Boot actuator for health checks
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
+    # Optional: Uncomment for development with live code reload
+    # volumes:
+    #   - ./backend/src:/app/src
+    #   - ./backend/pom.xml:/app/pom.xml
+
+  # ============================================
+  # React/Vite Frontend
+  # ============================================
+  frontend:
+    build:
+      context: ./frontend  # Path to your frontend directory
+      dockerfile: ../Dockerfile.frontend
+    container_name: app-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      # API Base URL - points to backend service
+      VITE_API_BASE_URL: http://localhost:8080
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
+    # Optional: Uncomment for development with live code reload
+    # volumes:
+    #   - ./frontend/src:/app/src
+    #   - ./frontend/public:/app/public
+    #   - /app/node_modules
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  app-network:
+    driver: bridge
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  postgres-data:
+    driver: local

@@ -1,0 +1,47 @@
+# Version Control
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+
+# Build artifacts
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven
+.m2/
+.maven/
+
+# Logs
+*.log
+logs/
+
+# System files
+Thumbs.db
+.project
+.classpath
+.settings/
+
+# Documentation
+README.md
+docs/
+
+# Docker files (not needed in build context)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Node (if any frontend build in backend)
+node_modules/
+npm-debug.log
