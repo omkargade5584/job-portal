@@ -53,11 +53,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())   // disable CSRF for REST APIs
+                // 1. Tell Spring Security to look at your CorsConfig
+                .cors(cors -> cors.configurationSource(request -> new CorsConfiguration().applyPermitDefaultValues()))
+                // 2. Disable CSRF if you are using JWT tokens (stateless REST API)
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // PUBLIC routes — no token needed
+                        // ⚠️ CRITICAL: Allow all preflight OPTIONS requests to bypass authentication
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/jobs").permitAll()       // anyone can view jobs
                         .requestMatchers("/api/jobs/{id}").permitAll()  // anyone can see job detail
