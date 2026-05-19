@@ -15,23 +15,20 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-        
+
         config.setAllowCredentials(true);
-        
+
         // Add your exact Vercel URL here (No trailing slash!)
         config.setAllowedOrigins(List.of(
-            "https://your-frontend-app.vercel.app", 
-            "http://localhost:3000"
-        ));
-        
+                "https://job-portal-five-inky-56.vercel.app",
+                "http://localhost:3000"));
+
         config.setAllowedHeaders(Arrays.asList(
-            "Origin", "Content-Type", "Accept", "Authorization", "Cache-Control", "X-Requested-With"
-        ));
-        
+                "Origin", "Content-Type", "Accept", "Authorization", "Cache-Control", "X-Requested-With"));
+
         config.setAllowedMethods(Arrays.asList(
-            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
-        ));
-        
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
